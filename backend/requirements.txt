@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic[email]
+python-multipart
+passlib[bcrypt]
+python-jose[cryptography]
+cryptography
+opencv-python-headless
+pillow
+numpy
+scikit-image
+python-dotenv
+aiofiles
+jinja2
+pytest
+httpx

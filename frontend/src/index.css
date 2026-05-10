@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #050505;
+  --color-card: #0a0a0a;
+  
+  --color-primary: #00d2ff;
+  --color-primary-hover: #00b8e6;
+  
+  --color-secondary: #9d50bb;
+  --color-secondary-hover: #8e44ad;
+  
+  --color-neon-blue: #00f2ff;
+  --color-neon-purple: #bc13fe;
+  --color-neon-green: #00ff88;
+
+  --background-image-glass-gradient: outline-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  --background-image-cyber-gradient: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
+
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float: float 6s ease-in-out infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+  }
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #050505;
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+.glass-panel {
+  background: rgba(10, 10, 10, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.neon-border {
+  position: relative;
+}
+
+.neon-border::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(45deg, #00d2ff, #9d50bb);
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+
+.neon-border:hover::after {
+  opacity: 1;
+  filter: blur(4px);
+}
+
+.glow-text {
+  text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+}
+
+.cyber-grid {
+  background-image: 
+    linear-gradient(rgba(0, 210, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 210, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a1a1a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a2a2a;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
