@@ -4,6 +4,7 @@ import os
 import uuid
 import shutil
 from typing import Optional
+from PIL import Image, UnidentifiedImageError
 
 from ..models import models, database
 from ..schemas import schemas
@@ -15,6 +16,44 @@ router = APIRouter()
 
 UPLOAD_DIR = "uploads"
 ENCODED_DIR = "encoded_images"
+MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024
+ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
+
+
+def validate_and_store_upload(image: UploadFile, destination_path: str) -> str:
+    if not image.filename:
+        raise HTTPException(status_code=400, detail="No file selected.")
+
+    file_ext = os.path.splitext(image.filename)[1].lower()
+    if file_ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Invalid image format. Use PNG, JPG, or JPEG.")
+
+    try:
+        image.file.seek(0, os.SEEK_END)
+        file_size = image.file.tell()
+        image.file.seek(0)
+    except (AttributeError, OSError):
+        file_size = None
+
+    if file_size is not None and file_size > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum size is 10 MB.")
+
+    try:
+        image.file.seek(0)
+        with Image.open(image.file) as img:
+            img.verify()
+
+        image.file.seek(0)
+        with Image.open(image.file) as img:
+            img.load()
+    except (UnidentifiedImageError, OSError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid or corrupted image file.")
+
+    with open(destination_path, "wb") as buffer:
+        image.file.seek(0)
+        shutil.copyfileobj(image.file, buffer)
+
+    return file_ext
 
 @router.post("/encode")
 async def encode_image(
@@ -26,18 +65,16 @@ async def encode_image(
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    # Save original image
-    file_ext = os.path.splitext(image.filename)[1]
-    if file_ext.lower() not in ['.png', '.jpg', '.jpeg', '.bmp']:
-        raise HTTPException(status_code=400, detail="Invalid image format. Use PNG, JPG, or BMP.")
-    
     unique_id = str(uuid.uuid4())
+    file_ext = validate_and_store_upload(image, os.path.join(UPLOAD_DIR, f"{unique_id}_orig.jpg"))
     original_path = os.path.join(UPLOAD_DIR, f"{unique_id}_orig{file_ext}")
-    encoded_filename = f"{unique_id}_encoded.png" # PNG is better for stego to avoid compression loss
+    encoded_filename = f"{unique_id}_encoded.png"  # PNG is better for stego to avoid compression loss
     encoded_path = os.path.join(ENCODED_DIR, encoded_filename)
 
-    with open(original_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
+    if os.path.exists(original_path):
+        os.remove(original_path)
+
+    validate_and_store_upload(image, original_path)
 
     # Process secret data
     payload = secret_text
@@ -102,8 +139,7 @@ async def decode_image(
     current_user: models.User = Depends(get_current_user)
 ):
     temp_path = os.path.join(UPLOAD_DIR, f"temp_decode_{uuid.uuid4()}.png")
-    with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
+    validate_and_store_upload(image, temp_path)
 
     try:
         if algorithm == "lsb":
@@ -146,8 +182,7 @@ async def analyze_image(
     current_user: models.User = Depends(get_current_user)
 ):
     temp_path = os.path.join(UPLOAD_DIR, f"temp_analyze_{uuid.uuid4()}.png")
-    with open(temp_path, "wb") as buffer:
-        shutil.copyfileobj(image.file, buffer)
+    validate_and_store_upload(image, temp_path)
 
     try:
         histogram = StegoEngine.get_histogram(temp_path)
